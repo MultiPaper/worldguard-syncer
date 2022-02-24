@@ -19,11 +19,14 @@ import java.util.Objects;
 public class WorldGuardSyncerPlugin extends JavaPlugin implements Listener {
 
     private static final String COMMAND_TO_SYNC = "commandstosync.txt";
-    private final HashSet<String> worldGuardCommands = new HashSet<>();
+    private static final String COMMAND_TO_EXCLUDE = "commandstoexclude.txt";
+    private final HashSet<String> commandsToSync = new HashSet<>();
+    private final HashSet<String> commandsToExclude = new HashSet<>();
 
     @Override
     public void onEnable() {
-        loadWorldGuardCommands();
+        loadCommandsToSync();
+        loadCommandsToExclude();
 
         this.getServer().getPluginManager().registerEvents(this, this);
     }
@@ -31,25 +34,53 @@ public class WorldGuardSyncerPlugin extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
-        String[] args = event.getMessage().split(" ");
-        String command = args[0];
 
-        if (worldGuardCommands.contains(command.toLowerCase(Locale.ROOT)) && MultiLib.isLocalPlayer(player) && hasWorldGuardPermission(player)) {
+        if (shouldSync(event.getMessage().toLowerCase(Locale.ROOT)) && MultiLib.isLocalPlayer(player) && hasWorldGuardPermission(player)) {
             MultiLib.chatOnOtherServers(player, event.getMessage());
         }
     }
 
-    private void loadWorldGuardCommands() {
-       try (BufferedReader reader = new BufferedReader(new InputStreamReader(Objects.requireNonNull(this.getResource(COMMAND_TO_SYNC))))) {
+    private boolean shouldSync(String message) {
+        String[] args = message.split(" ");
+        String command = args[0];
+
+        return commandsToSync.contains(command) && !shouldNotSync(message);
+    }
+
+    private boolean shouldNotSync(String message) {
+        for (String toExclude : commandsToExclude) {
+            if (message.startsWith(toExclude)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void loadCommandsToSync() {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Objects.requireNonNull(this.getResource(COMMAND_TO_SYNC))))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (!line.isEmpty()) {
-                    worldGuardCommands.add(line);
+                    commandsToSync.add(line);
                 }
             }
-       } catch (IOException e) {
-           throw new RuntimeException(e);
-       }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void loadCommandsToExclude() {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Objects.requireNonNull(this.getResource(COMMAND_TO_EXCLUDE))))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!line.isEmpty()) {
+                    commandsToExclude.add(line);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private boolean hasWorldGuardPermission(CommandSender commandSender) {

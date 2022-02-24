@@ -1,0 +1,13 @@
+/region tp
+/region teleport
+/region flags
+/region info
+/region i
+/region list
+
+/rg tp
+/rg teleport
+/rg flags
+/rg info
+/rg i
+/rg list
