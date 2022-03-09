@@ -29,6 +29,8 @@ public class WorldGuardSyncerPlugin extends JavaPlugin implements Listener {
         loadCommandsToExclude();
 
         this.getServer().getPluginManager().registerEvents(this, this);
+
+        new AddProfilesToWorldGuardCache(this);
     }
 
     @EventHandler
